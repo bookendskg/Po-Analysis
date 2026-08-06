@@ -1,11 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Petpooja API Tester</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { margin: 0; background: #fff; }
+    #root:empty::after {
+      content: "Loading…";
+      display: block;
+      padding: 24px;
+      font: 14px system-ui, sans-serif;
+      color: #888;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #111; }
+      :root {
+        --text-color: #e5e5e5;
+        --muted-color: #999;
+        --border-color: #333;
+        --input-bg: #1c1c1c;
+        --info-bg: #1a1a1a;
+        --accent-bg: #16233d;
+        --code-bg: #000;
+        --warn-bg: #2a2210;
+        --warn-border: #574a1c;
+      }
+    }
+  </style>
 </head>
 <body>
-    
+  <script>
+    // Keep both pages on the Node server (port 5173). It serves the /proxy route
+    // the output page needs, which Live Server and other static servers lack.
+    (() => {
+      const PORT = "5173";
+      if (location.protocol !== "file:" && location.port !== PORT) {
+        location.replace("http://localhost:" + PORT + location.pathname + location.search);
+      }
+    })();
+  </script>
+  <div style="max-width:720px;margin:0 auto;padding:16px 16px 0;text-align:right">
+    <a href="dashboard.html" style="font:600 13px system-ui,sans-serif;color:#2563eb;text-decoration:none;margin-right:14px">
+      Dashboard →
+    </a>
+    <a href="output.html" style="font:600 13px system-ui,sans-serif;color:#2563eb;text-decoration:none">
+      Live API output →
+    </a>
+  </div>
+  <div id="root"></div>
+  <script>
+    (async () => {
+      const root = document.getElementById("root");
+      try {
+        const res = await fetch("petpooja-api-tester.jsx");
+        if (!res.ok) throw new Error("Could not load petpooja-api-tester.jsx (" + res.status + ")");
+        const source = await res.text();
+
+        // The .jsx file is authored as an ES module. Rewrite its module syntax
+        // so it can run as a plain script against the React UMD globals.
+        const script = source
+          .replace(/^\s*import[^;]+from\s+["']react["'];?/m, "const { useState, useMemo } = React;")
+          .replace(/export\s+default\s+function/, "function");
+
+        // runtime: "classic" emits React.createElement. The default ("automatic")
+        // injects an `import ... from "react/jsx-runtime"`, which cannot run here.
+        const { code } = Babel.transform(script, {
+          presets: [["react", { runtime: "classic" }]],
+        });
+        const App = new Function("React", code + "\n;return PetpoojaApiTester;")(React);
+
+        ReactDOM.createRoot(root).render(React.createElement(App));
+      } catch (err) {
+        root.textContent = "Error: " + err.message;
+        root.style.cssText = "padding:24px;font:14px system-ui;color:#c00";
+        console.error(err);
+      }
+    })();
+  </script>
 </body>
 </html>

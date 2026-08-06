@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Petpooja API Output</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { margin: 0; background: #fff; font-family: 'Inter', system-ui, sans-serif; }
+    #root:empty::after {
+      content: "Loading…";
+      display: block; padding: 24px; font: 14px system-ui, sans-serif; color: #888;
+    }
+    .tok-key { color: #7dd3fc; }
+    .tok-str { color: #86efac; }
+    .tok-num { color: #fca5a5; }
+    .tok-bool { color: #d8b4fe; }
+    .tok-null { color: #94a3b8; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #111; }
+      :root {
+        --text-color: #e5e5e5; --muted-color: #999; --border-color: #333;
+        --input-bg: #1c1c1c; --info-bg: #1a1a1a; --accent-bg: #16233d;
+        --warn-bg: #2a2210; --warn-border: #574a1c;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    // These pages only work on the Node server (port 5173) — it hosts the /proxy
+    // route the API calls go through. Opening them from VS Code Live Server or
+    // any other static server lands here, so bounce to the right origin.
+    (() => {
+      const PORT = "5173";
+      if (location.protocol !== "file:" && location.port !== PORT) {
+        location.replace("http://localhost:" + PORT + location.pathname + location.search);
+      }
+    })();
+  </script>
+  <script>
+    // Transform the app with runtime: "classic". Babel's default ("automatic")
+    // injects its own import of "react/jsx-runtime", which cannot execute in a
+    // plain script — that is why <script type="text/babel"> left this page blank.
+    (async () => {
+      const root = document.getElementById("root");
+      try {
+        const res = await fetch("output-app.jsx");
+        if (!res.ok) throw new Error("Could not load output-app.jsx (" + res.status + ")");
+        const { code } = Babel.transform(await res.text(), {
+          presets: [["react", { runtime: "classic" }]],
+        });
+        const OutputPage = new Function("React", code + "\n;return OutputPage;")(React);
+        ReactDOM.createRoot(root).render(React.createElement(OutputPage));
+      } catch (err) {
+        root.textContent = "Error: " + err.message;
+        root.style.cssText = "padding:24px;font:14px system-ui;color:#c00";
+        console.error(err);
+      }
+    })();
+  </script>
+</body>
+</html>
